@@ -23,6 +23,9 @@ parser.add_argument('--test_batch_size', type=int, default=1000)
 parser.add_argument('--save', type=str, default='./experiment1')
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--gpu', type=int, default=0)
+
+parser.add_argument('--odesolver', type=str, default='dopri5', choices=['explicit_adams','fixed_adams','adams','tsit5','dopri5','euler','midpoint','rk4'])
+parser.add_argument('--odestride', type=float, default=1e-3)
 args = parser.parse_args()
 
 if args.adjoint:
@@ -122,7 +125,7 @@ class ODEBlock(nn.Module):
 
     def forward(self, x):
         self.integration_time = self.integration_time.type_as(x)
-        out = odeint(self.odefunc, x, self.integration_time, rtol=args.tol, atol=args.tol)
+        out = odeint(self.odefunc, x, self.integration_time, rtol=args.tol, atol=args.tol, method=args.odesolver, options={'step_size':args.odestride})
         return out[1]
 
     @property
