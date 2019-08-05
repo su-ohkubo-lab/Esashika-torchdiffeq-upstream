@@ -26,6 +26,8 @@ parser.add_argument('--gpu', type=int, default=0)
 
 parser.add_argument('--odesolver', type=str, default='dopri5', choices=['explicit_adams','fixed_adams','adams','tsit5','dopri5','euler','midpoint','rk4'])
 parser.add_argument('--odestride', type=float, default=1e-3)
+parser.add_argument('--uniform', type=eval, default=False, choices=[True, False])
+
 args = parser.parse_args()
 
 if args.adjoint:
@@ -277,6 +279,31 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
     return logger
 
 
+def uniformarize_params(modules):
+    def _rgetattr(obj, name):
+        import functools
+        return functools.reduce(getattr, [obj] + name.split(sep='.'))
+    def mean_of_params(*tensors):
+        return np.stack(tensors).mean(axis=0)[0]
+    def set_param(name, param, modules):
+        #param = param.fill_(1)
+        param = torch.from_numpy(param) if isinstance(param, np.ndarray) else param
+        param = torch.nn.Parameter(param) if not isinstance(param, torch.nn.Parameter) else param
+        pre, _, post = name.rpartition('.')
+        for l in modules:
+            if pre:
+                setattr(_rgetattr(l, pre), post, param)
+            else:
+                setattr(l, post, param)
+    def get_params(name, modules):
+        return [_rgetattr(l, name) for l in modules]
+    def get_names(module):
+        return [name for name, _param in module.named_parameters()]
+    for name in get_names(modules[0]):
+        params = get_params(name, modules)
+        params = mean_of_params(params)
+        set_param(name, params, modules)
+
 if __name__ == '__main__':
 
     makedirs(args.save)
@@ -334,7 +361,15 @@ if __name__ == '__main__':
     b_nfe_meter = RunningAverageMeter()
     end = time.time()
 
+    if args.uniform:
+        logger.info("Uniform switch is on.\nSome layers are share parameters.")
+        if is_odenet:
+            logger.warn("Uniform switch is on but network is constructed as odenet.\nSo uniform switch may cause unexpected effects.")
+
     for itr in range(args.nepochs * batches_per_epoch):
+
+        if args.uniform:
+            uniformarize_params(feature_layers)
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_fn(itr)
