@@ -27,6 +27,7 @@ parser.add_argument('--gpu', type=int, default=0)
 parser.add_argument('--odesolver', type=str, default='dopri5', choices=['explicit_adams','fixed_adams','adams','tsit5','dopri5','euler','midpoint','rk4'])
 parser.add_argument('--odestride', type=float, default=1e-3)
 parser.add_argument('--uniform', type=eval, default=False, choices=[True, False])
+parser.add_argument('--layer_depth', type=int, default=6)
 
 args = parser.parse_args()
 
@@ -331,7 +332,7 @@ if __name__ == '__main__':
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
 
-    feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
+    feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(args.layer_depth)]
     fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(64, 10)]
 
     model = nn.Sequential(*downsampling_layers, *feature_layers, *fc_layers).to(device)
