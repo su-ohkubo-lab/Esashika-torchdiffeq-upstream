@@ -333,6 +333,8 @@ def uniformarize_params(modules):
         return [_rgetattr(l, name) for l in modules]
     def get_names(module):
         return [name for name, _param in module.named_parameters()]
+    if len(modules) == 0:
+        return
     for name in get_names(modules[0]):
         params = get_params(name, modules)
         params = mean_of_params(params)
