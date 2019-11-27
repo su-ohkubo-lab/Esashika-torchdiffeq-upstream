@@ -9,33 +9,34 @@ from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--network', type=str, choices=['resnet', 'odenet'], default='odenet')
-parser.add_argument('--tol', type=float, default=1e-3)
-parser.add_argument('--adjoint', type=eval, default=False, choices=[True, False])
-parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
-parser.add_argument('--nepochs', type=int, default=160)
-parser.add_argument('--data_aug', type=eval, default=True, choices=[True, False])
-parser.add_argument('--lr', type=float, default=0.1)
-parser.add_argument('--batch_size', type=int, default=128)
-parser.add_argument('--test_batch_size', type=int, default=1000)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--network', type=str, choices=['resnet', 'odenet'], default='odenet')
+    parser.add_argument('--tol', type=float, default=1e-3)
+    parser.add_argument('--adjoint', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
+    parser.add_argument('--nepochs', type=int, default=160)
+    parser.add_argument('--data_aug', type=eval, default=True, choices=[True, False])
+    parser.add_argument('--lr', type=float, default=0.1)
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--test_batch_size', type=int, default=1000)
 
-parser.add_argument('--save', type=str, default='./experiment1')
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--gpu', type=int, default=0)
+    parser.add_argument('--save', type=str, default='./experiment1')
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--gpu', type=int, default=0)
 
-parser.add_argument('--odesolver', type=str, default='dopri5', choices=['explicit_adams','fixed_adams','adams','tsit5','dopri5','euler','midpoint','rk4'])
-parser.add_argument('--odestride', type=float, default=1e-3)
-parser.add_argument('--uniform', type=eval, default=False, choices=[True, False])
-parser.add_argument('--layer_depth', type=int, default=6)
-parser.add_argument('--dataset', type=str, default='mnist')
+    parser.add_argument('--odesolver', type=str, default='dopri5', choices=['explicit_adams','fixed_adams','adams','tsit5','dopri5','euler','midpoint','rk4'])
+    parser.add_argument('--odestride', type=float, default=1e-3)
+    parser.add_argument('--uniform', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--layer_depth', type=int, default=6)
+    parser.add_argument('--dataset', type=str, default='mnist')
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-if args.adjoint:
-    from torchdiffeq import odeint_adjoint as odeint
-else:
-    from torchdiffeq import odeint
+    if args.adjoint:
+        from torchdiffeq import odeint_adjoint as odeint
+    else:
+        from torchdiffeq import odeint
 
 
 def conv3x3(in_planes, out_planes, stride=1):
