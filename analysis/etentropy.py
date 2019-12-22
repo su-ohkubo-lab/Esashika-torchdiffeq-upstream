@@ -3,14 +3,26 @@
 import numpy
 
 class etEntropy(object):
-	from typing import List
-
-	def __init__(self, epsilon, tau, dimension, num_sample):
-		self.epsilon: float = epsilon
-		self.tau: int = tau
-		self.dimension: int = dimension
-		self.num_sample: int = num_sample
+	def __init__(self):
+		self.epsilon: float = None
+		self.tau: int = None
+		self.dimension: int = None
+		self.num_sample: int = None
 		self.tsdata = None
+		param_names = ('epsilon', 'tau', 'dimension', 'num_sample', 'tsdata')
+
+	def __str__(self):
+		return "epsilon={}  tau={}  dim={}  sample={}  tsdata={}".format(self.epsilon, self.tau, self.dimension, self.num_sample, self.tsdata)
+
+	def keep_params(func):
+		def wrapper(self, *args, **kwargs):
+			param_store = {}
+			for pname in self.param_names:
+				param_store[pname] = getattr(itself, pname)
+			func(*args, **kwargs)
+			for pname, pvalue in param_store.items():
+				setattr(itself, pname, pvalue)
+		return wrapper
 
 	def set_data(self, time_series_data):
 		"""
@@ -87,7 +99,7 @@ class etEntropy(object):
 		r = len(array_probability)
 		return -divide(sum(log(ap)), r) # same as return -ap.log().sum().divide(r)
 
-	def docalc(self):
+	def docalc_correlation_index(self):
 		"""
 		Calculate epsilon-tau entropy with set data.
 		"""
@@ -97,8 +109,22 @@ class etEntropy(object):
 		m_pgdata = self.embed_tsdata_to_coord(self.tau, self.dimension, self.tsdata)
 		m_dist = self.calc_distances(m_pgdata)
 		a_prob = self.calc_prob_nearness(m_dist, self.epsilon)
-		a_prob_selected = numpy.random.choice(a_prob, self.num_sample, replace=False) # sampling WITHOUT replacement
+		if self.num_sample:
+			a_prob_selected = numpy.random.choice(a_prob, self.num_sample, replace=False) # sampling WITHOUT replacement
+		else:
+			a_prob_selected = a_prob
 		return self.calc_correlation(a_prob_selected)
+
+	@keep_params
+	def docalc_lesser_entropy(self, dimension):
+		"""
+		Calculate entropy approximately
+		"""
+		self.dimension = dimension
+		ci1 = docalc_correlation_index()
+		self.dimension = dimension - 1
+		ci2 = docalc_correlation_index()
+		return res1 - res2
 
 	@classmethod
 	def entropy(cls, data, epsilon, tau, dimension, num_sample):
