@@ -76,7 +76,7 @@ class extractor(object):
 	def plot(self, start, stop, ndiv):
 		import matplotlib
 		import matplotlib.pyplot as pplt
-		matplotlib.use('gtk3agg')
+		#matplotlib.use('gtk3agg')
 		tsdata = self.integrate(init_data=torch.ones(1,64,6,6), probe_points=torch.linspace(start,stop,ndiv))
 		pplt.plot(tsdata[:,:,:,0,0].reshape(ndiv,64))
 		pplt.show()
