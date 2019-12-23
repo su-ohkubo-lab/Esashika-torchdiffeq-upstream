@@ -30,6 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--uniform', type=eval, default=False, choices=[True, False])
     parser.add_argument('--layer_depth', type=int, default=6)
     parser.add_argument('--dataset', type=str, default='mnist')
+    parser.add_argument('--savemodel', type=eval, default=False, choices=[True, False])
 
     args = parser.parse_args()
 
@@ -448,6 +449,8 @@ if __name__ == '__main__':
                 if val_acc > best_acc:
                     torch.save({'state_dict': model.state_dict(), 'args': args}, os.path.join(args.save, 'model.pth'))
                     best_acc = val_acc
+                if args.savemodel:
+                    torch.save({'state_dict': model.state_dict(), 'args': args}, os.path.join(args.save, 'model-epoch{}.pth'.format(itr/batches_per_epoch)))
                 logger.info(
                     "Epoch {:04d} | Time {:.3f} ({:.3f}) | NFE-F {:.1f} | NFE-B {:.1f} | "
                     "Train Acc {:.4f} | Test Acc {:.4f}".format(
