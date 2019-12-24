@@ -121,11 +121,11 @@ class etEntropy(object):
 		"""
 		Calculate entropy approximately
 		"""
-		self.dimension = dimension
-		ci1 = docalc_correlation_index()
-		self.dimension = dimension - 1
-		ci2 = docalc_correlation_index()
-		return res1 - res2
+		ci1 = self.docalc_correlation_index()
+		self.dimension = self.dimension - 1
+		ci2 = self.docalc_correlation_index()
+		# Notice that tau is not realtime, its just offset of data to embed data to space.
+		return (ci1 - ci2) / self.tau
 
 	@classmethod
 	def entropy(cls, data, epsilon, tau, dimension, num_sample):
