@@ -9,7 +9,7 @@ class etEntropy(object):
 		self.dimension: int = None
 		self.num_sample: int = None
 		self.tsdata = None
-		param_names = ('epsilon', 'tau', 'dimension', 'num_sample', 'tsdata')
+		self.param_names = ('epsilon', 'tau', 'dimension', 'num_sample', 'tsdata')
 
 	def __str__(self):
 		return "epsilon={}  tau={}  dim={}  sample={}  tsdata={}".format(self.epsilon, self.tau, self.dimension, self.num_sample, self.tsdata)
@@ -18,10 +18,11 @@ class etEntropy(object):
 		def wrapper(self, *args, **kwargs):
 			param_store = {}
 			for pname in self.param_names:
-				param_store[pname] = getattr(itself, pname)
-			func(*args, **kwargs)
+				param_store[pname] = getattr(self, pname)
+			result = func(self, *args, **kwargs)
 			for pname, pvalue in param_store.items():
-				setattr(itself, pname, pvalue)
+				setattr(self, pname, pvalue)
+			return result
 		return wrapper
 
 	def set_data(self, time_series_data):
@@ -116,7 +117,7 @@ class etEntropy(object):
 		return self.calc_correlation(a_prob_selected)
 
 	@keep_params
-	def docalc_lesser_entropy(self, dimension):
+	def docalc_cp_entropy(self):
 		"""
 		Calculate entropy approximately
 		"""
