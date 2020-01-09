@@ -33,6 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--savemodel', type=eval, default=False, choices=[True, False])
     parser.add_argument('--degrade_odenet', type=eval, default=False, choices=[True, False])
     parser.add_argument('--disable_odenet', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--more_odenet', type=eval, default=False, choices=[True, False])
 
     args = parser.parse_args()
 
@@ -112,6 +113,10 @@ class ODEfunc(nn.Module):
             if not args.degrade_odenet:
                 self.conv2 = ConcatConv2d(dim, dim, 3, 1, 1)
                 self.norm3 = norm(dim)
+                if args.more_odenet:
+                    self.relu2 = nn.ReLU(inplace=True)
+                    self.conv3 = ConcatConv2d(dim, dim, 3, 1, 1)
+                    self.norm4 = norm(dim)
         self.nfe = 0
 
     def forward(self, t, x):
@@ -126,6 +131,10 @@ class ODEfunc(nn.Module):
             if not args.degrade_odenet:
                 out = self.conv2(t, out)
                 out = self.norm3(out)
+                if args.more_odenet:
+                    out = self.relu2(out)
+                    out = self.conv3(t, out)
+                    out = self.norm4(out)
         return out
 
 
