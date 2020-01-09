@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--layer_depth', type=int, default=6)
     parser.add_argument('--dataset', type=str, default='mnist')
     parser.add_argument('--savemodel', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--degrade_odenet', type=eval, default=False, choices=[True, False])
 
     args = parser.parse_args()
 
@@ -106,8 +107,9 @@ class ODEfunc(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = ConcatConv2d(dim, dim, 3, 1, 1)
         self.norm2 = norm(dim)
-        self.conv2 = ConcatConv2d(dim, dim, 3, 1, 1)
-        self.norm3 = norm(dim)
+        if not args.degrade_odenet:
+            self.conv2 = ConcatConv2d(dim, dim, 3, 1, 1)
+            self.norm3 = norm(dim)
         self.nfe = 0
 
     def forward(self, t, x):
@@ -117,8 +119,9 @@ class ODEfunc(nn.Module):
         out = self.conv1(t, out)
         out = self.norm2(out)
         out = self.relu(out)
-        out = self.conv2(t, out)
-        out = self.norm3(out)
+        if not args.degrade_odenet:
+            out = self.conv2(t, out)
+            out = self.norm3(out)
         return out
 
 
