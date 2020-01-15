@@ -15,34 +15,46 @@ if __name__ == '__main__':
 	cmdargs = parser.parse_args()
 
 class extractor(object):
-	downsampling_layers = [
-		nn.Conv2d(1, 64, 3, 1),
-		tdeom.norm(64),
-		nn.ReLU(inplace=True),
-		nn.Conv2d(64, 64, 4, 2, 1),
-		tdeom.norm(64),
-		nn.ReLU(inplace=True),
-		nn.Conv2d(64, 64, 4, 2, 1),
-	]
+	def __init__(self, config={}):
+		if config.pop('conv_degrade', False):
+			self.downsampling_layers = [
+				nn.Conv2d(1, 64, 3, 1),
+				tdeom.norm(64),
+				nn.ReLU(inplace=True),
+				nn.Conv2d(64, 64, 4, 4, 1),
+			]
+		else:
+			self.downsampling_layers = [
+				nn.Conv2d(1, 64, 3, 1),
+				tdeom.norm(64),
+				nn.ReLU(inplace=True),
+				nn.Conv2d(64, 64, 4, 2, 1),
+				tdeom.norm(64),
+				nn.ReLU(inplace=True),
+				nn.Conv2d(64, 64, 4, 2, 1),
+			]
+	
+		self.feature_layers = [
+			tdeom.ODEBlock(tdeom.ODEfunc(64, mode=config.pop('odemode', None)))
+		]
+	
+		self.fc_layers = [
+			tdeom.norm(64),
+			nn.ReLU(inplace=True),
+			nn.AdaptiveAvgPool2d((1,1)),
+			tdeom.Flatten(),
+			nn.Linear(64,10)
+		]
 
-	feature_layers = [
-		tdeom.ODEBlock(tdeom.ODEfunc(64))
-	]
+		if len(config) != 0:
+			logging.warn('Unknown config options are detected')
 
-	fc_layers = [
-		tdeom.norm(64),
-		nn.ReLU(inplace=True),
-		nn.AdaptiveAvgPool2d((1,1)),
-		tdeom.Flatten(),
-		nn.Linear(64,10)
-	]
-
-	def __init__(self):
 		self.model = nn.Sequential(
 			*self.downsampling_layers,
 			*self.feature_layers,
 			*self.fc_layers
 		)
+
 		self.odefunc = self.feature_layers[0].odefunc
 		self.tol = 1e-3
 		self.odesolver = 'dopri5'

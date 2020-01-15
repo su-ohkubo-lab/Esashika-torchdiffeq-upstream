@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--network', type=str, choices=['resnet', 'odenet'], default='odenet')
     parser.add_argument('--tol', type=float, default=1e-3)
     parser.add_argument('--adjoint', type=eval, default=False, choices=[True, False])
-    parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
+    parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res', 'conv-degrade'])
     parser.add_argument('--nepochs', type=int, default=160)
     parser.add_argument('--data_aug', type=eval, default=True, choices=[True, False])
     parser.add_argument('--lr', type=float, default=0.1)
@@ -31,9 +31,10 @@ if __name__ == '__main__':
     parser.add_argument('--layer_depth', type=int, default=6)
     parser.add_argument('--dataset', type=str, default='mnist')
     parser.add_argument('--savemodel', type=eval, default=False, choices=[True, False])
-    parser.add_argument('--degrade_odenet', type=eval, default=False, choices=[True, False])
-    parser.add_argument('--disable_odenet', type=eval, default=False, choices=[True, False])
-    parser.add_argument('--more_odenet', type=eval, default=False, choices=[True, False])
+    #parser.add_argument('--degrade_odenet', type=eval, default=False, choices=[True, False])
+    #parser.add_argument('--disable_odenet', type=eval, default=False, choices=[True, False])
+    #parser.add_argument('--more_odenet', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--odemode', type=str, default=None)
 
     args = parser.parse_args()
 
@@ -103,17 +104,18 @@ class ConcatConv2d(nn.Module):
 
 class ODEfunc(nn.Module):
 
-    def __init__(self, dim):
+    def __init__(self, dim, mode=None):
         super(ODEfunc, self).__init__()
-        if not args.disable_odenet:
+        self.odemode = mode
+        if not mode == 'disable':
             self.norm1 = norm(dim)
             self.relu = nn.ReLU(inplace=True)
             self.conv1 = ConcatConv2d(dim, dim, 3, 1, 1)
             self.norm2 = norm(dim)
-            if not args.degrade_odenet:
+            if not mode == 'degrade':
                 self.conv2 = ConcatConv2d(dim, dim, 3, 1, 1)
                 self.norm3 = norm(dim)
-                if args.more_odenet:
+                if mode == 'more':
                     self.relu2 = nn.ReLU(inplace=True)
                     self.conv3 = ConcatConv2d(dim, dim, 3, 1, 1)
                     self.norm4 = norm(dim)
@@ -122,16 +124,16 @@ class ODEfunc(nn.Module):
     def forward(self, t, x):
         self.nfe += 1
         out = x
-        if not args.disable_odenet:
+        if not self.odemode == 'disable':
             out = self.norm1(x)
             out = self.relu(out)
             out = self.conv1(t, out)
             out = self.norm2(out)
             out = self.relu(out)
-            if not args.degrade_odenet:
+            if not self.odemode == 'degrade':
                 out = self.conv2(t, out)
                 out = self.norm3(out)
-                if args.more_odenet:
+                if self.odemode == 'odenet':
                     out = self.relu2(out)
                     out = self.conv3(t, out)
                     out = self.norm4(out)
@@ -384,8 +386,15 @@ if __name__ == '__main__':
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
+    elif args.downsampling_method == 'conv-degrade':
+        downsampling_layers = [
+            nn.Conv2d(1, 64, 3, 1),
+            norm(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 4, 4, 1),
+        ]
 
-    feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(args.layer_depth)]
+    feature_layers = [ODEBlock(ODEfunc(64, args.odemode))] if is_odenet else [ResBlock(64, 64) for _ in range(args.layer_depth)]
     fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(64, 10)]
 
     if args.layer_depth == 0:
