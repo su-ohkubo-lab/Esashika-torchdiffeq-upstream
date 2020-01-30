@@ -40,7 +40,7 @@ class etEntropy(object):
 		self.tsdata = numpy.array(time_series_data)
 
 	@staticmethod
-	def embed_tsdata_to_coord(strides, steps, time_series_data):
+	def embed_tsdata_to_coord_obsolete(strides, steps, time_series_data):
 		"""
 		Embed time series data to high dimensional coordinate
 
@@ -55,6 +55,24 @@ class etEntropy(object):
 		for i in range(steps):
 			data[i,i*strides:i*strides+len(time_series_data)] = time_series_data
 		return data[:, max_offset:-max_offset]
+
+	@staticmethod
+	def embed_tsdata_to_coord(strides, steps, time_series_data):
+		"""
+		Embed time series data to high dimensional coordinate
+		Align the head of time series data when make matrix
+
+		Returns
+		-------
+		matrix of coordinate
+			axis 0: value of each dimensions
+			axis 1: time
+		"""
+		max_offset = (steps-1) * strides
+		data = numpy.ndarray(shape=(steps, len(time_series_data)), dtype=float)
+		for i in range(steps):
+			data[i,:len(time_series_data)-i*strides] = time_series_data[i*strides:]
+		return data[:, :-max_offset]
 
 	@staticmethod
 	def calc_distances(matrix_coord):
