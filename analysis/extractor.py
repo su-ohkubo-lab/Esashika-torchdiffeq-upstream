@@ -7,7 +7,7 @@ import torch.nn as nn
 import logging
 import examples.odenet_mnist as tdeom
 
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
