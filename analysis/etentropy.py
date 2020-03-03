@@ -9,10 +9,11 @@ class etEntropy(object):
 		self.dimension: int = None
 		self.num_sample: int = None
 		self.tsdata = None
-		self.param_names = ('epsilon', 'tau', 'dimension', 'num_sample', 'tsdata')
+		self.num_data = None
+		self.param_names = ('epsilon', 'tau', 'dimension', 'num_sample', 'tsdata', 'num_data')
 
 	def __str__(self):
-		return "epsilon={}  tau={}  dim={}  sample={}  tsdata={}".format(self.epsilon, self.tau, self.dimension, self.num_sample, self.tsdata)
+		return "epsilon={}  tau={}  dim={}  sample={}  num_data={}  tsdata={}".format(self.epsilon, self.tau, self.dimension, self.num_sample, self.num_data, self.tsdata)
 
 	def keep_params(func):
 		def wrapper(self, *args, **kwargs):
@@ -57,7 +58,7 @@ class etEntropy(object):
 		return data[:, max_offset:-max_offset]
 
 	@staticmethod
-	def embed_tsdata_to_coord(strides, steps, time_series_data):
+	def embed_tsdata_to_coord(strides, steps, time_series_data, max_length=None):
 		"""
 		Embed time series data to high dimensional coordinate
 		Align the head of time series data when make matrix
@@ -69,10 +70,16 @@ class etEntropy(object):
 			axis 1: time
 		"""
 		max_offset = (steps-1) * strides
-		data = numpy.ndarray(shape=(steps, len(time_series_data)), dtype=float)
+		if not max_length: # max_length is auto (use all data)
+			max_length = len(time_series_data) - max_offset
+		if max_length > len(time_series_data) - max_offset:
+			raise RuntimeError("Couldn't configure matrix: max_length is too large")
+		if max_length <= 0:
+			raise RuntimeError("Couldn't configure matrix: not enough data")
+		data = numpy.ndarray(shape=(steps, max_length), dtype=float)
 		for i in range(steps):
-			data[i,:len(time_series_data)-i*strides] = time_series_data[i*strides:]
-		return data[:, :-max_offset]
+			data[i] = time_series_data[i*strides:data.shape[1]+i*strides]
+		return data
 
 	@staticmethod
 	def calc_distances(matrix_coord):
@@ -116,6 +123,7 @@ class etEntropy(object):
 		from numpy import log, sum, divide
 		ap = array_probability
 		r = len(array_probability)
+		#return divide(sum(ap), r)
 		return -divide(sum(log(ap)), r) # same as return -ap.log().sum().divide(r)
 
 	def docalc_correlation_index(self):
@@ -125,11 +133,13 @@ class etEntropy(object):
 		# check tsdata is exists
 		if self.tsdata.any():
 			RuntimeError("Time series data is not inputed")
-		m_pgdata = self.embed_tsdata_to_coord(self.tau, self.dimension, self.tsdata)
+		m_pgdata = self.embed_tsdata_to_coord(self.tau, self.dimension, self.tsdata, self.num_data)
 		m_dist = self.calc_distances(m_pgdata)
 		a_prob = self.calc_prob_nearness(m_dist, self.epsilon)
 		if self.num_sample:
+			numpy.random.seed(0)
 			a_prob_selected = numpy.random.choice(a_prob, self.num_sample, replace=False) # sampling WITHOUT replacement
+			#a_prob_selected = a_prob[:self.num_sample]
 		else:
 			a_prob_selected = a_prob
 		return self.calc_correlation(a_prob_selected)
